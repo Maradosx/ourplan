@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  profileSlug  String   @unique
+  displayName  String
+  passwordHash String
+  avatarUrl    String?
+  bio          String?
+  timezone     String   @default("Asia/Bangkok")
+  notificationPrefs Json?
+  privacyPrefs      Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  schedules           Schedule[]
+  quickShifts         QuickShift[]
+  refreshTokens       RefreshToken[]
+  friendsRequested    Friendship[]         @relation("Requester")
+  friendsReceived     Friendship[]         @relation("Addressee")
+  groupMemberships    GroupMember[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@index([email])
+  @@index([profileSlug])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum Category {
+  Work
+  Health
+  Errand
+  Social
+  Travel
+  Other
+}
+
+enum Visibility {
+  private
+  friends
+  public
+}
+
+model Schedule {
+  id             String     @id @default(cuid())
+  userId         String
+  title          String
+  description    String?
+  category       Category   @default(Other)
+  startDatetime  DateTime
+  endDatetime    DateTime
+  location       String?
+  visibility     Visibility @default(friends)
+  isRecurring    Boolean    @default(false)
+  recurrenceRule String?
+  colorTag       String?
+  icon           String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startDatetime])
+  @@index([startDatetime])
+}
+
+// ─── Quick Shift ──────────────────────────────────────────────────────────────
+// Stores a user's work-block / shift for a given calendar date.
+// Multiple shifts per day are allowed as long as times don't overlap.
+// Date is stored as a local YYYY-MM-DD string to avoid timezone boundary issues.
+model QuickShift {
+  id                 String   @id @default(cuid())
+  userId             String
+  date               String   // "YYYY-MM-DD" local date
+  shiftKey           String   // e.g. 'day' | 'morning' | 'night' | 'off' | 'leave' …
+  startTime          String?  // "HH:MM" 24-hour, null for off/leave
+  endTime            String?  // "HH:MM" 24-hour, null for off/leave
+  blocksAvailability Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, shiftKey])
+  @@index([userId, date])
+}
+
+enum FriendStatus {
+  pending
+  accepted
+  blocked
+}
+
+model Friendship {
+  id          String       @id @default(cuid())
+  requesterId String
+  addresseeId String
+  status      FriendStatus @default(pending)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  requester User @relation("Requester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("Addressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([requesterId])
+  @@index([addresseeId])
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String
+  inviteCode  String   @unique @default(cuid())
+  createdAt   DateTime @default(now())
+
+  members GroupMember[]
+
+  @@index([inviteCode])
+}
+
+enum GroupRole {
+  owner
+  member
+}
+
+model GroupMember {
+  id       String    @id @default(cuid())
+  groupId  String
+  userId   String
+  role     GroupRole @default(member)
+  joinedAt DateTime  @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+}
