@@ -17,6 +17,7 @@ interface AuthStore {
   accessToken: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  sessionLoaded: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
@@ -36,6 +37,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   accessToken: null,
   isLoading: false,
   isAuthenticated: false,
+  sessionLoaded: false,
 
   login: async (email, password) => {
     set({ isLoading: true });
@@ -83,15 +85,20 @@ export const useAuthStore = create<AuthStore>((set) => ({
   setUser: (user: User) => set({ user }),
 
   loadSession: async () => {
-    const token = await AsyncStorage.getItem('ourplan_token');
-    if (!token) return;
     try {
+      const token = await AsyncStorage.getItem('ourplan_token');
+      if (!token) return;
       const { data } = await api.get('/auth/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
       set({ user: data, accessToken: token, isAuthenticated: true });
     } catch {
       await AsyncStorage.multiRemove(['ourplan_token', 'ourplan_refresh']);
+    } finally {
+      // Always mark the session check complete so the root index can stop showing
+      // its loading state and route correctly (prevents a logged-in user from being
+      // bounced to the welcome screen on cold start).
+      set({ sessionLoaded: true });
     }
   },
 }));

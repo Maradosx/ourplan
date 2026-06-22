@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { api } from '../lib/api';
 import { Category } from '../constants/theme';
+import { todayString } from '../lib/dateUtils';
 
 export interface Schedule {
   id: string;
@@ -31,7 +32,9 @@ interface ScheduleStore {
   reset: () => void;
 }
 
-const today = new Date().toISOString().split('T')[0];
+// Local calendar date — using toISOString() here would show the wrong day near
+// midnight for non-UTC users (e.g. it returns "yesterday" for ICT after 17:00).
+const today = todayString();
 
 export const useScheduleStore = create<ScheduleStore>((set, get) => ({
   schedules: [],
@@ -70,5 +73,5 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
 
   // Clear all cached schedule data — called on logout so the next account on this
   // device never briefly sees the previous user's events.
-  reset: () => set({ schedules: [], selectedDate: new Date().toISOString().split('T')[0], isLoading: false }),
+  reset: () => set({ schedules: [], selectedDate: todayString(), isLoading: false }),
 }));
