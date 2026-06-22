@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  api:
+    name: API (build + test)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ourplan
+          POSTGRES_PASSWORD: ourplan
+          POSTGRES_DB: ourplan
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ourplan -d ourplan"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: "postgresql://ourplan:ourplan@localhost:5432/ourplan?schema=public"
+      JWT_SECRET: "ci-only-fake-jwt-secret"
+      JWT_REFRESH_SECRET: "ci-only-fake-jwt-refresh-secret"
+      JWT_EXPIRES_IN: "15m"
+      JWT_REFRESH_EXPIRES_IN: "30d"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter api exec prisma generate
+
+      - name: Run database migrations
+        run: pnpm --filter api exec prisma migrate deploy
+
+      - name: Build API
+        run: pnpm --filter api build
+
+      - name: Test API
+        run: pnpm --filter api test --passWithNoTests
+
+  mobile:
+    name: Mobile typecheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Mobile typecheck
+        run: pnpm --filter mobile exec tsc --noEmit

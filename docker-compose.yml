@@ -1,0 +1,62 @@
+# Docker Compose for the OurPlan API + PostgreSQL (local/dev / portfolio use).
+#
+# Usage:
+#   docker compose up --build
+#
+# The api image is built from the repo root so the pnpm workspace
+# (pnpm-lock.yaml, pnpm-workspace.yaml, packages/shared) is available to the
+# build. See apps/api/Dockerfile for details.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ourplan
+      POSTGRES_PASSWORD: ourplan
+      POSTGRES_DB: ourplan
+    ports:
+      - "5432:5432"
+    volumes:
+      - ourplan_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ourplan -d ourplan"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Wire the DATABASE_URL to the `db` service on the compose network.
+      DATABASE_URL: "postgresql://ourplan:ourplan@db:5432/ourplan?schema=public"
+      # Clearly-fake dev defaults — DO NOT use these in production.
+      JWT_SECRET: "dev-only-fake-jwt-secret-change-me"
+      JWT_REFRESH_SECRET: "dev-only-fake-jwt-refresh-secret-change-me"
+      JWT_EXPIRES_IN: "15m"
+      JWT_REFRESH_EXPIRES_IN: "30d"
+      NODE_ENV: "production"
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+    healthcheck:
+      # Uses the health endpoint behind the global /api/v1 prefix.
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/health || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  ourplan_db_data:

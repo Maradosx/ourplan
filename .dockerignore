@@ -1,0 +1,29 @@
+# Keep the Docker build context small and reproducible.
+# node_modules are reinstalled inside the image from pnpm-lock.yaml.
+node_modules
+**/node_modules
+
+# Expo / build / compiled output
+.expo
+**/.expo
+dist
+**/dist
+build
+**/build
+
+# Local env files (secrets) — never bake these into an image
+**/.env
+**/.env.*
+
+# Native iOS project (not needed for the API image)
+ios
+
+# VCS, logs, coverage, misc
+.git
+**/*.log
+coverage
+**/coverage
+screenshots
+**/screenshots
+.DS_Store
+**/.DS_Store
