@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./docs/banner.png" alt="OurPlan — Plan together, not apart." width="100%" />
+</p>
+
 # OurPlan
 
 > **Plan together, not apart.** A full-stack social scheduling app that finds the time your group actually has free.

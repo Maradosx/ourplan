@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
+  View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useLanguageStore } from '../../store/languageStore';
@@ -56,8 +56,8 @@ export default function WelcomeScreen() {
         {/* ── Logo area ── */}
         <View style={styles.logoArea}>
           <View style={styles.logoOuter}>
-            <View style={[styles.logoInner, { backgroundColor: t.accent }]}>
-              <Text style={styles.logoEmoji}>📅</Text>
+            <View style={styles.logoInner}>
+              <Image source={require('../../assets/icon.png')} style={styles.logoImg} />
             </View>
           </View>
           <Text style={[styles.appName, { color: t.text }]}>Ourplan</Text>
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 }, shadowRadius: 20,
     elevation: 12,
   },
-  logoEmoji: { fontSize: 38 },
+  logoImg: { width: 80, height: 80, borderRadius: 22 },
   appName: { fontSize: 40, fontWeight: '900', letterSpacing: -1.5, marginTop: 4 },
   tagline: { fontSize: 15, textAlign: 'center', lineHeight: 22 },
 
