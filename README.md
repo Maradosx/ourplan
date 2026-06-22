@@ -15,6 +15,13 @@ OurPlan is a cross-platform mobile app for managing your personal schedule and e
   <img alt="NestJS" src="https://img.shields.io/badge/NestJS_11-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" />
   <img alt="Prisma" src="https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white" />
   <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" />
+  <img alt="Supabase" src="https://img.shields.io/badge/Supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/Maradosx/ourplan/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Maradosx/ourplan/actions/workflows/ci.yml/badge.svg" /></a>
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-green.svg" />
+  <img alt="Platform" src="https://img.shields.io/badge/platform-iOS%20%7C%20Android-lightgrey.svg" />
 </p>
 
 ---
@@ -43,6 +50,19 @@ OurPlan is a cross-platform mobile app for managing your personal schedule and e
 
 ---
 
+## Engineering highlights
+
+- **Refresh-token rotation** — each refresh issues a new token pair and invalidates the previous one server-side; the mobile axios client refreshes transparently on a `401`.
+- **Server-side authorization & privacy** — object-level ownership checks on every resource, and the privacy toggles (public profile / show events / discoverable) are enforced in the read endpoints, not just hidden in the UI.
+- **Hardened API** — global `ValidationPipe` (whitelist + forbid-unknown), `@nestjs/throttler` rate limiting, `helmet`, and a Prisma exception filter that maps DB errors to clean 4xx responses.
+- **"Find Time" algorithm** — sweeps each day in 30-minute steps across all participants' events and availability-blocking quick-shifts to surface shared free windows, honoring a configurable date range, minimum duration, and hours-of-day.
+- **Timezone-correct** — schedules and the calendar use local-calendar semantics, avoiding the classic UTC off-by-one-day bug.
+- **Typed end-to-end** — TypeScript across mobile + API with 0 type errors, plus a Jest suite covering auth, the free-slot finder, and the exception filter.
+- **CI + containerized** — GitHub Actions builds and tests the API against a Postgres service and type-checks the app on every push; `docker compose up` brings the API and database up with one command.
+- **Production database** — schema deployed to a hosted **Supabase** Postgres with Row Level Security enabled.
+
+---
+
 ## Tech Stack
 
 **Mobile — `apps/mobile`** (~12k LOC)
@@ -54,12 +74,13 @@ OurPlan is a cross-platform mobile app for managing your personal schedule and e
 
 **API — `apps/api`**
 - **NestJS 11** (modular controllers / services / DTOs)
-- **Prisma 5** ORM over **PostgreSQL**
+- **Prisma 5** ORM over **PostgreSQL** — local in dev, hosted on **Supabase** in production (RLS enabled)
 - **JWT** auth via `@nestjs/jwt` + Passport, `bcrypt` password hashing
-- **@nestjs/throttler** rate limiting, `class-validator` request validation, global `/api/v1` prefix + CORS
+- **@nestjs/throttler** rate limiting, `class-validator` request validation, `helmet`, global `/api/v1` prefix + CORS
 
-**Workspace**
+**Workspace & tooling**
 - **pnpm** workspaces monorepo (`apps/*`, `packages/*`), TypeScript end-to-end
+- **Jest** test suite, **GitHub Actions** CI, **Docker** + `docker compose`
 
 ---
 
@@ -141,17 +162,20 @@ Then edit `apps/api/.env` and set at minimum:
 - `DATABASE_URL` — your PostgreSQL connection string
 - `JWT_SECRET` and `JWT_REFRESH_SECRET` — long random strings
 
-For the mobile app, create `apps/mobile/.env`:
+For the mobile app:
 ```bash
-EXPO_PUBLIC_API_URL=http://localhost:3000/api/v1
+cp apps/mobile/.env.example apps/mobile/.env
 ```
-> **Maps:** the location picker uses `react-native-maps`. Native builds read a **`GOOGLE_MAPS_API_KEY`** (configured under `expo.ios.config.googleMapsApiKey` in `apps/mobile/app.json`). Provide your own key there before producing a native build.
+Set `EXPO_PUBLIC_API_URL` (defaults to `http://localhost:3000/api/v1`).
+> **Maps:** the location picker uses `react-native-maps`. Set **`GOOGLE_MAPS_API_KEY`** in `apps/mobile/.env` — it is injected into the native iOS config at build time by `app.config.js`, so the key is never committed. The map requires a native/dev build.
 
 ### 3. Set up the database
 ```bash
 pnpm --filter api prisma migrate dev
 ```
 This creates the schema and generates the Prisma client.
+
+> **Hosted Postgres (Supabase):** for production the schema also runs on a **Supabase** Postgres (Row Level Security enabled). Point `DATABASE_URL` at the connection string from the Supabase dashboard and apply the schema with `pnpm --filter api prisma migrate deploy`.
 
 ### 4. Run
 ```bash
@@ -163,9 +187,11 @@ pnpm api      # NestJS on http://localhost:3000/api/v1
 pnpm mobile   # Expo dev server
 ```
 
-> **Docker:** no `docker-compose.yml` ships in this repo yet. The quickest path to a database is a one-off Postgres container, e.g.
-> `docker run --name ourplan-db -e POSTGRES_PASSWORD=password -e POSTGRES_DB=ourplan -p 5432:5432 -d postgres:16`,
-> then point `DATABASE_URL` at it. (A bundled compose file is on the roadmap.)
+> **Docker:** bring the API + Postgres up together with a single command:
+> ```bash
+> docker compose up
+> ```
+> The compose file builds the API image, starts a `postgres:16` service, runs `prisma migrate deploy`, and exposes the API on `:3000` with a `/api/v1/health` healthcheck.
 
 ---
 
@@ -196,10 +222,9 @@ See [`apps/api/README.md`](./apps/api/README.md) for API-only setup details.
 
 **Future work**
 - Push notifications (event reminders, friend requests, group invites)
-- A bundled `docker-compose.yml` for one-command local Postgres + API
-- Live deployment (hosted API + database, EAS-built mobile binaries)
+- Hosted API deployment to pair with the Supabase database, plus EAS-built mobile binaries
 - Real billing integration (replace the RevenueCat stub keys + entitlements)
-- Test coverage expansion (e2e flows beyond the scaffolded specs)
+- Test coverage expansion (e2e flows beyond the unit specs)
 
 ---
 
