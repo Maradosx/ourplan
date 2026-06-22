@@ -17,15 +17,9 @@ OurPlan is a cross-platform mobile app for managing your personal schedule and e
 
 ## Screenshots
 
-> 📸 _Coming soon._ Drop `home.png`, `friends.png`, `findtime.png`, and `profile.png`
-> into [`docs/screenshots/`](./docs/screenshots/) (portrait, ~1080px wide), then
-> uncomment the table below to display them.
-
-<!--
 | Home | Friends | Find Time | Profile |
 | :--: | :-----: | :-------: | :-----: |
 | ![Home](./docs/screenshots/home.png) | ![Friends](./docs/screenshots/friends.png) | ![Find Time](./docs/screenshots/findtime.png) | ![Profile](./docs/screenshots/profile.png) |
--->
 
 ---
 
