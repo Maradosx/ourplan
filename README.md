@@ -28,6 +28,10 @@ OurPlan is a cross-platform mobile app for managing your personal schedule and e
 
 ## Screenshots
 
+<p align="center">
+  <img src="./docs/demo.gif" alt="OurPlan walkthrough — Home, Find Time, Friends, Profile" width="300" />
+</p>
+
 | Home | Friends | Find Time | Profile |
 | :--: | :-----: | :-------: | :-----: |
 | ![Home](./docs/screenshots/home.png) | ![Friends](./docs/screenshots/friends.png) | ![Find Time](./docs/screenshots/findtime.png) | ![Profile](./docs/screenshots/profile.png) |
