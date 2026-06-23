@@ -1,10 +1,10 @@
 {
   "name": "api",
-  "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "version": "1.0.0",
+  "description": "OurPlan API — NestJS + Prisma + PostgreSQL. JWT auth with refresh rotation, the Find Time free-slot algorithm, friends, groups, and quick-shifts.",
+  "author": "Athit Boonpinit",
+  "license": "MIT",
   "private": true,
-  "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

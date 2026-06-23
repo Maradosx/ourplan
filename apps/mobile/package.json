@@ -1,6 +1,9 @@
 {
   "name": "mobile",
   "version": "1.0.0",
+  "description": "OurPlan mobile app — React Native + Expo (Expo Router, Zustand). Schedules, Quick Shift, Find Time, friends, groups, 8 themes, Thai/English.",
+  "author": "Athit Boonpinit",
+  "license": "MIT",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",

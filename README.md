@@ -228,6 +228,19 @@ See [`apps/api/README.md`](./apps/api/README.md) for API-only setup details.
 
 ---
 
+## About
+
+Designed and built by **Athit Boonpinit** — a full-stack developer focused on mobile UX, secure API design, and clean architecture.
+
+OurPlan is a personal project: every part of it — the React Native app, the NestJS + Prisma API, the Find Time scheduling algorithm, the auth and security layer, the brand and logo, and the CI/Docker tooling — was designed and implemented end to end.
+
+- **GitHub:** [@Maradosx](https://github.com/Maradosx)
+- **Email:** athit.boonpinit@gmail.com
+
+Feedback and questions are welcome — open an issue or reach out directly.
+
+---
+
 ## License
 
-[MIT](./LICENSE)
+[MIT](./LICENSE) © 2026 Athit Boonpinit
