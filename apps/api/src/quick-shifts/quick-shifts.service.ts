@@ -1,12 +1,31 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { IsString, IsNotEmpty, IsArray, ArrayNotEmpty, IsOptional } from 'class-validator';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import {
+  IsString,
+  IsNotEmpty,
+  IsArray,
+  ArrayNotEmpty,
+  IsOptional,
+} from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 
 // ─── Shift config (backend source of truth for time/availability defaults) ────
 
 const VALID_SHIFT_KEYS = new Set([
-  'night', 'morning', 'half_day_am', 'day', 'full_day',
-  'afternoon', 'half_day_pm', 'evening', 'overtime', 'off', 'leave',
+  'night',
+  'morning',
+  'half_day_am',
+  'day',
+  'full_day',
+  'afternoon',
+  'half_day_pm',
+  'evening',
+  'overtime',
+  'off',
+  'leave',
 ]);
 
 interface ShiftDefaults {
@@ -16,44 +35,61 @@ interface ShiftDefaults {
 }
 
 const SHIFT_DEFAULTS: Record<string, ShiftDefaults> = {
-  night:       { startTime: '00:00', endTime: '08:00', blocksAvailability: true },
-  morning:     { startTime: '06:00', endTime: '12:00', blocksAvailability: true },
-  half_day_am: { startTime: '08:00', endTime: '12:00', blocksAvailability: true },
-  day:         { startTime: '08:00', endTime: '16:00', blocksAvailability: true },
-  full_day:    { startTime: '09:00', endTime: '17:00', blocksAvailability: true },
-  afternoon:   { startTime: '12:00', endTime: '18:00', blocksAvailability: true },
-  half_day_pm: { startTime: '13:00', endTime: '17:00', blocksAvailability: true },
-  evening:     { startTime: '16:00', endTime: '00:00', blocksAvailability: true },
-  overtime:    { startTime: '17:00', endTime: '20:00', blocksAvailability: true },
-  off:         { startTime: null,    endTime: null,    blocksAvailability: false },
-  leave:       { startTime: null,    endTime: null,    blocksAvailability: false },
+  night: { startTime: '00:00', endTime: '08:00', blocksAvailability: true },
+  morning: { startTime: '06:00', endTime: '12:00', blocksAvailability: true },
+  half_day_am: {
+    startTime: '08:00',
+    endTime: '12:00',
+    blocksAvailability: true,
+  },
+  day: { startTime: '08:00', endTime: '16:00', blocksAvailability: true },
+  full_day: { startTime: '09:00', endTime: '17:00', blocksAvailability: true },
+  afternoon: { startTime: '12:00', endTime: '18:00', blocksAvailability: true },
+  half_day_pm: {
+    startTime: '13:00',
+    endTime: '17:00',
+    blocksAvailability: true,
+  },
+  evening: { startTime: '16:00', endTime: '00:00', blocksAvailability: true },
+  overtime: { startTime: '17:00', endTime: '20:00', blocksAvailability: true },
+  off: { startTime: null, endTime: null, blocksAvailability: false },
+  leave: { startTime: null, endTime: null, blocksAvailability: false },
 };
 
 // ─── DTOs ─────────────────────────────────────────────────────────────────────
 
 export class UpsertQuickShiftDto {
-  @IsString() @IsNotEmpty()
+  @IsString()
+  @IsNotEmpty()
   date: string;
-  @IsString() @IsNotEmpty()
+  @IsString()
+  @IsNotEmpty()
   shiftKey: string;
   /** Optional custom start time (HH:MM) – only honoured for 'overtime' */
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   customStart?: string;
   /** Optional custom end time (HH:MM) – only honoured for 'overtime' */
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   customEnd?: string;
 }
 
 export class BulkApplyDto {
-  @IsArray() @ArrayNotEmpty() @IsString({ each: true })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsString({ each: true })
   dates: string[];
-  @IsString() @IsNotEmpty()
+  @IsString()
+  @IsNotEmpty()
   shiftKey: string;
   /** Optional custom start time (HH:MM) – only honoured for 'overtime' */
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   customStart?: string;
   /** Optional custom end time (HH:MM) – only honoured for 'overtime' */
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   customEnd?: string;
 }
 
@@ -73,7 +109,9 @@ export class QuickShiftsService {
 
   private validateDate(date: string): void {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      throw new BadRequestException(`Invalid date format. Expected YYYY-MM-DD, got: ${date}`);
+      throw new BadRequestException(
+        `Invalid date format. Expected YYYY-MM-DD, got: ${date}`,
+      );
     }
   }
 
@@ -108,8 +146,10 @@ export class QuickShiftsService {
   }
 
   private rangesOverlap(
-    aStart: string | null, aEnd: string | null,
-    bStart: string | null, bEnd: string | null,
+    aStart: string | null,
+    aEnd: string | null,
+    bStart: string | null,
+    bEnd: string | null,
   ): boolean {
     if (!aStart || !bStart) return false;
     const a0 = this.timeToMins(aStart);
@@ -144,10 +184,10 @@ export class QuickShiftsService {
    */
   async getMonth(userId: string, year: number, month: number) {
     const pad = (n: number) => String(n).padStart(2, '0');
-    const m   = month + 1; // 1-indexed for string
+    const m = month + 1; // 1-indexed for string
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const dateStart = `${year}-${pad(m)}-01`;
-    const dateEnd   = `${year}-${pad(m)}-${pad(daysInMonth)}`;
+    const dateEnd = `${year}-${pad(m)}-${pad(daysInMonth)}`;
 
     return this.prisma.quickShift.findMany({
       where: { userId, date: { gte: dateStart, lte: dateEnd } },
@@ -164,22 +204,25 @@ export class QuickShiftsService {
 
     // Validate + resolve custom times (overtime only)
     let effectiveStart: string | null;
-    let effectiveEnd:   string | null;
+    let effectiveEnd: string | null;
     if (dto.shiftKey === 'overtime' && (dto.customStart || dto.customEnd)) {
       if (!dto.customStart || !dto.customEnd) {
-        throw new BadRequestException('Both customStart and customEnd are required for overtime.');
+        throw new BadRequestException(
+          'Both customStart and customEnd are required for overtime.',
+        );
       }
       this.validateTimeHHMM(dto.customStart, 'customStart');
-      this.validateTimeHHMM(dto.customEnd,   'customEnd');
+      this.validateTimeHHMM(dto.customEnd, 'customEnd');
       const s = this.timeToMins(dto.customStart);
       const e = this.timeToMins(dto.customEnd);
-      if (s >= e) throw new BadRequestException('customEnd must be after customStart.');
+      if (s >= e)
+        throw new BadRequestException('customEnd must be after customStart.');
       effectiveStart = dto.customStart;
-      effectiveEnd   = dto.customEnd;
+      effectiveEnd = dto.customEnd;
     } else {
       const defaults = SHIFT_DEFAULTS[dto.shiftKey];
       effectiveStart = defaults.startTime;
-      effectiveEnd   = defaults.endTime;
+      effectiveEnd = defaults.endTime;
     }
 
     // Check for overlap with existing shifts on the same date (other shiftKeys)
@@ -187,15 +230,32 @@ export class QuickShiftsService {
       where: { userId, date: dto.date, NOT: { shiftKey: dto.shiftKey } },
     });
     for (const ex of existing) {
-      const exRange = this.resolveShiftRange(ex.shiftKey, ex.startTime ?? undefined, ex.endTime ?? undefined);
-      if (this.rangesOverlap(effectiveStart, effectiveEnd, exRange.startTime, exRange.endTime)) {
+      const exRange = this.resolveShiftRange(
+        ex.shiftKey,
+        ex.startTime ?? undefined,
+        ex.endTime ?? undefined,
+      );
+      if (
+        this.rangesOverlap(
+          effectiveStart,
+          effectiveEnd,
+          exRange.startTime,
+          exRange.endTime,
+        )
+      ) {
         throw new BadRequestException('กะทับซ้อนกับกะที่มีอยู่');
       }
     }
 
     const defaults = SHIFT_DEFAULTS[dto.shiftKey];
     return this.prisma.quickShift.upsert({
-      where: { userId_date_shiftKey: { userId, date: dto.date, shiftKey: dto.shiftKey } },
+      where: {
+        userId_date_shiftKey: {
+          userId,
+          date: dto.date,
+          shiftKey: dto.shiftKey,
+        },
+      },
       create: {
         userId,
         date: dto.date,
@@ -221,38 +281,58 @@ export class QuickShiftsService {
       throw new BadRequestException('dates must be a non-empty array');
     }
     if (dto.dates.length > 90) {
-      throw new BadRequestException('Cannot apply to more than 90 dates at once');
+      throw new BadRequestException(
+        'Cannot apply to more than 90 dates at once',
+      );
     }
     this.validateShiftKey(dto.shiftKey);
     dto.dates.forEach((d) => this.validateDate(d));
 
     // Validate + resolve custom times (overtime only)
     let effectiveStart: string | null;
-    let effectiveEnd:   string | null;
+    let effectiveEnd: string | null;
     if (dto.shiftKey === 'overtime' && (dto.customStart || dto.customEnd)) {
       if (!dto.customStart || !dto.customEnd) {
-        throw new BadRequestException('Both customStart and customEnd are required for overtime.');
+        throw new BadRequestException(
+          'Both customStart and customEnd are required for overtime.',
+        );
       }
       this.validateTimeHHMM(dto.customStart, 'customStart');
-      this.validateTimeHHMM(dto.customEnd,   'customEnd');
+      this.validateTimeHHMM(dto.customEnd, 'customEnd');
       const s = this.timeToMins(dto.customStart);
       const e = this.timeToMins(dto.customEnd);
-      if (s >= e) throw new BadRequestException('customEnd must be after customStart.');
+      if (s >= e)
+        throw new BadRequestException('customEnd must be after customStart.');
       effectiveStart = dto.customStart;
-      effectiveEnd   = dto.customEnd;
+      effectiveEnd = dto.customEnd;
     } else {
       const defaults = SHIFT_DEFAULTS[dto.shiftKey];
       effectiveStart = defaults.startTime;
-      effectiveEnd   = defaults.endTime;
+      effectiveEnd = defaults.endTime;
     }
 
     // Check overlaps across all target dates
     const existingAll = await this.prisma.quickShift.findMany({
-      where: { userId, date: { in: dto.dates }, NOT: { shiftKey: dto.shiftKey } },
+      where: {
+        userId,
+        date: { in: dto.dates },
+        NOT: { shiftKey: dto.shiftKey },
+      },
     });
     for (const ex of existingAll) {
-      const exRange = this.resolveShiftRange(ex.shiftKey, ex.startTime ?? undefined, ex.endTime ?? undefined);
-      if (this.rangesOverlap(effectiveStart, effectiveEnd, exRange.startTime, exRange.endTime)) {
+      const exRange = this.resolveShiftRange(
+        ex.shiftKey,
+        ex.startTime ?? undefined,
+        ex.endTime ?? undefined,
+      );
+      if (
+        this.rangesOverlap(
+          effectiveStart,
+          effectiveEnd,
+          exRange.startTime,
+          exRange.endTime,
+        )
+      ) {
         throw new BadRequestException('กะทับซ้อนกับกะที่มีอยู่');
       }
     }
@@ -266,9 +346,12 @@ export class QuickShiftsService {
     const results = await Promise.all(
       dto.dates.map((date) =>
         this.prisma.quickShift.upsert({
-          where: { userId_date_shiftKey: { userId, date, shiftKey: dto.shiftKey } },
+          where: {
+            userId_date_shiftKey: { userId, date, shiftKey: dto.shiftKey },
+          },
           create: {
-            userId, date,
+            userId,
+            date,
             shiftKey: dto.shiftKey,
             startTime: effectiveStart,
             endTime: effectiveEnd,
@@ -289,7 +372,11 @@ export class QuickShiftsService {
   // ─── Delete ──────────────────────────────────────────────────────────────────
 
   /** Delete a specific shift by date + shiftKey. Throws 404 if not found. */
-  async deleteByDateAndShiftKey(userId: string, date: string, shiftKey: string) {
+  async deleteByDateAndShiftKey(
+    userId: string,
+    date: string,
+    shiftKey: string,
+  ) {
     this.validateDate(date);
     this.validateShiftKey(shiftKey);
     const existing = await this.prisma.quickShift.findUnique({

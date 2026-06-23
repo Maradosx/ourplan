@@ -68,7 +68,10 @@ describe('PrismaExceptionFilter', () => {
 
     expect(status).toHaveBeenCalledWith(409);
     expect(json).toHaveBeenCalledWith(
-      expect.objectContaining({ statusCode: 409, message: 'Duplicate record.' }),
+      expect.objectContaining({
+        statusCode: 409,
+        message: 'Duplicate record.',
+      }),
     );
   });
 

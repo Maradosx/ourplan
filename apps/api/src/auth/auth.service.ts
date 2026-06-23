@@ -1,4 +1,11 @@
-import { Injectable, UnauthorizedException, ConflictException, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -24,7 +31,8 @@ export class AuthService {
     const existing = await this.prisma.user.findFirst({
       where: { OR: [{ email }, { username }] },
     });
-    if (existing) throw new ConflictException('Email or username already taken');
+    if (existing)
+      throw new ConflictException('Email or username already taken');
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const profileSlug = this.generateSlug(username);
@@ -37,7 +45,15 @@ export class AuthService {
         displayName: dto.displayName,
         passwordHash,
       },
-      select: { id: true, email: true, username: true, displayName: true, avatarUrl: true, profileSlug: true, bio: true },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+        profileSlug: true,
+        bio: true,
+      },
     });
 
     return this.signTokens(user.id, user.email, user);
@@ -45,7 +61,9 @@ export class AuthService {
 
   async login(email: string, password: string) {
     const normalizedEmail = email.toLowerCase().trim();
-    const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
     const valid = await bcrypt.compare(password, user.passwordHash);
@@ -56,7 +74,10 @@ export class AuthService {
   }
 
   async refresh(token: string) {
-    const stored = await this.prisma.refreshToken.findUnique({ where: { token }, include: { user: true } });
+    const stored = await this.prisma.refreshToken.findUnique({
+      where: { token },
+      include: { user: true },
+    });
     if (!stored || stored.expiresAt < new Date()) {
       if (stored) await this.prisma.refreshToken.delete({ where: { token } });
       throw new ForbiddenException('Refresh token expired or invalid');
@@ -69,19 +90,34 @@ export class AuthService {
   async getMe(userId: string) {
     return this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, username: true, displayName: true, avatarUrl: true, profileSlug: true, bio: true, timezone: true },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+        profileSlug: true,
+        bio: true,
+        timezone: true,
+      },
     });
   }
 
   async forgotPassword(email: string) {
     const normalizedEmail = email.toLowerCase().trim();
-    const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
     // Always return the SAME generic response to prevent email enumeration.
-    const genericResponse = { message: 'If that email exists, a reset link has been sent.' };
+    const genericResponse = {
+      message: 'If that email exists, a reset link has been sent.',
+    };
     if (!user) return genericResponse;
 
     // Invalidate existing tokens for this user
-    await this.prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
+    await this.prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id },
+    });
 
     const rawToken = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60); // 1 hour
@@ -96,8 +132,9 @@ export class AuthService {
     // the token can be surfaced behind an explicit, fail-closed opt-in flag that defaults OFF.
     const exposeForDev = this.config.get('EXPOSE_RESET_TOKEN') === 'true';
     if (exposeForDev) {
-      // eslint-disable-next-line no-console
-      console.log(`[DEV ONLY] Password reset token for ${normalizedEmail}: ${rawToken}`);
+      console.log(
+        `[DEV ONLY] Password reset token for ${normalizedEmail}: ${rawToken}`,
+      );
       return { ...genericResponse, devToken: rawToken };
     }
 
@@ -109,17 +146,27 @@ export class AuthService {
       throw new BadRequestException('Password must be at least 8 characters');
     }
 
-    const record = await this.prisma.passwordResetToken.findUnique({ where: { token } });
+    const record = await this.prisma.passwordResetToken.findUnique({
+      where: { token },
+    });
     if (!record || record.used || record.expiresAt < new Date()) {
       throw new BadRequestException('Reset token is invalid or has expired');
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
-    await this.prisma.user.update({ where: { id: record.userId }, data: { passwordHash } });
-    await this.prisma.passwordResetToken.update({ where: { id: record.id }, data: { used: true } });
+    await this.prisma.user.update({
+      where: { id: record.userId },
+      data: { passwordHash },
+    });
+    await this.prisma.passwordResetToken.update({
+      where: { id: record.id },
+      data: { used: true },
+    });
 
     // Invalidate all refresh tokens (force re-login everywhere)
-    await this.prisma.refreshToken.deleteMany({ where: { userId: record.userId } });
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId: record.userId },
+    });
 
     return { message: 'Password updated successfully. Please sign in again.' };
   }

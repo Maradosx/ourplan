@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Param, UseGuards, Request, ConflictException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  UseGuards,
+  Request,
+  ConflictException,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -11,20 +19,51 @@ export class FriendsController {
   async list(@Request() req: any) {
     const userId = req.user.sub;
     const friendships = await this.prisma.friendship.findMany({
-      where: { status: 'accepted', OR: [{ requesterId: userId }, { addresseeId: userId }] },
+      where: {
+        status: 'accepted',
+        OR: [{ requesterId: userId }, { addresseeId: userId }],
+      },
       include: {
-        requester: { select: { id: true, displayName: true, username: true, avatarUrl: true, profileSlug: true } },
-        addressee: { select: { id: true, displayName: true, username: true, avatarUrl: true, profileSlug: true } },
+        requester: {
+          select: {
+            id: true,
+            displayName: true,
+            username: true,
+            avatarUrl: true,
+            profileSlug: true,
+          },
+        },
+        addressee: {
+          select: {
+            id: true,
+            displayName: true,
+            username: true,
+            avatarUrl: true,
+            profileSlug: true,
+          },
+        },
       },
     });
-    return friendships.map((f) => (f.requesterId === userId ? f.addressee : f.requester));
+    return friendships.map((f) =>
+      f.requesterId === userId ? f.addressee : f.requester,
+    );
   }
 
   @Get('pending')
   async pending(@Request() req: any) {
     const pending = await this.prisma.friendship.findMany({
       where: { addresseeId: req.user.sub, status: 'pending' },
-      include: { requester: { select: { id: true, displayName: true, username: true, avatarUrl: true, profileSlug: true } } },
+      include: {
+        requester: {
+          select: {
+            id: true,
+            displayName: true,
+            username: true,
+            avatarUrl: true,
+            profileSlug: true,
+          },
+        },
+      },
     });
     return pending.map((f) => ({ ...f.requester, friendshipId: f.id }));
   }
@@ -39,7 +78,9 @@ export class FriendsController {
 
   @Post(':id/decline')
   async decline(@Request() req: any, @Param('id') id: string) {
-    return this.prisma.friendship.delete({ where: { id, addresseeId: req.user.sub } });
+    return this.prisma.friendship.delete({
+      where: { id, addresseeId: req.user.sub },
+    });
   }
 
   @Post('request/:targetId')

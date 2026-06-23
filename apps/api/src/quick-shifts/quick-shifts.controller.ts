@@ -1,9 +1,23 @@
 import {
-  Body, Controller, Delete, Get, Param, Post, Query, Request, UseGuards,
-  HttpCode, HttpStatus, Logger,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  Request,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { QuickShiftsService, UpsertQuickShiftDto, BulkApplyDto } from './quick-shifts.service';
+import {
+  QuickShiftsService,
+  UpsertQuickShiftDto,
+  BulkApplyDto,
+} from './quick-shifts.service';
 
 @Controller('quick-shifts')
 @UseGuards(JwtAuthGuard)
@@ -31,7 +45,9 @@ export class QuickShiftsController {
   /** POST /quick-shifts – upsert single date+shiftKey */
   @Post()
   upsert(@Request() req: any, @Body() dto: UpsertQuickShiftDto) {
-    this.logger.log(`upsert userId=${req.user?.sub} date=${dto?.date} shiftKey=${dto?.shiftKey}`);
+    this.logger.log(
+      `upsert userId=${req.user?.sub} date=${dto?.date} shiftKey=${dto?.shiftKey}`,
+    );
     return this.service.upsert(req.user.sub, dto);
   }
 

@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Request, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { IsString, IsNotEmpty, MaxLength } from 'class-validator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GroupsService } from './groups.service';
@@ -32,7 +42,11 @@ export class GroupsController {
   }
 
   @Patch(':id')
-  renameGroup(@Request() req: any, @Param('id') id: string, @Body() body: CreateGroupDto) {
+  renameGroup(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() body: CreateGroupDto,
+  ) {
     return this.groups.renameGroup(req.user.sub, id, body.name);
   }
 
@@ -42,12 +56,20 @@ export class GroupsController {
   }
 
   @Post(':id/members')
-  addMember(@Request() req: any, @Param('id') id: string, @Body() body: AddMemberDto) {
+  addMember(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() body: AddMemberDto,
+  ) {
     return this.groups.addMember(req.user.sub, id, body.userId);
   }
 
   @Delete(':id/members/:userId')
-  removeMember(@Request() req: any, @Param('id') id: string, @Param('userId') userId: string) {
+  removeMember(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+  ) {
     return this.groups.removeMember(req.user.sub, id, userId);
   }
 }

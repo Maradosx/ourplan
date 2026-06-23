@@ -1,6 +1,20 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CreateScheduleDto, UpdateScheduleDto } from './dto/create-schedule.dto';
+import {
+  CreateScheduleDto,
+  UpdateScheduleDto,
+} from './dto/create-schedule.dto';
 import { SchedulesService } from './schedules.service';
 
 @Controller('schedules')
@@ -22,7 +36,11 @@ export class SchedulesController {
     @Query('year') year: string,
     @Query('month') month: string,
   ) {
-    return this.schedules.findMonthForMe(req.user.sub, Number(year), Number(month));
+    return this.schedules.findMonthForMe(
+      req.user.sub,
+      Number(year),
+      Number(month),
+    );
   }
 
   // ── Free slots ───────────────────────────────────────────────────────────────
@@ -67,7 +85,12 @@ export class SchedulesController {
     @Query('friendIds') friendIds?: string,
   ) {
     const ids = friendIds ? friendIds.split(',').filter(Boolean) : undefined;
-    return this.schedules.findMonthAllFriends(req.user.sub, Number(year), Number(month), ids);
+    return this.schedules.findMonthAllFriends(
+      req.user.sub,
+      Number(year),
+      Number(month),
+      ids,
+    );
   }
 
   // ── Single friend – month dots ───────────────────────────────────────────────
@@ -78,7 +101,12 @@ export class SchedulesController {
     @Query('year') year: string,
     @Query('month') month: string,
   ) {
-    return this.schedules.findMonthForFriend(req.user.sub, friendId, Number(year), Number(month));
+    return this.schedules.findMonthForFriend(
+      req.user.sub,
+      friendId,
+      Number(year),
+      Number(month),
+    );
   }
 
   // ── Single friend – day ──────────────────────────────────────────────────────
@@ -104,7 +132,11 @@ export class SchedulesController {
   }
 
   @Patch(':id')
-  update(@Request() req: any, @Param('id') id: string, @Body() dto: UpdateScheduleDto) {
+  update(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateScheduleDto,
+  ) {
     return this.schedules.update(req.user.sub, id, dto);
   }
 

@@ -1,4 +1,15 @@
-import { Controller, Get, Patch, Body, Param, UseGuards, Request, Query, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+  Query,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { IsOptional, IsString, MaxLength, IsObject } from 'class-validator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
@@ -58,22 +69,34 @@ export class UsersController {
     });
     return {
       notificationPrefs: user?.notificationPrefs ?? {
-        event_reminder: true, friend_request: true, friend_accept: true, group_invite: true,
+        event_reminder: true,
+        friend_request: true,
+        friend_accept: true,
+        group_invite: true,
       },
       privacyPrefs: user?.privacyPrefs ?? {
-        publicProfile: true, showEvents: true, allowSearch: true,
+        publicProfile: true,
+        showEvents: true,
+        allowSearch: true,
       },
     };
   }
 
   /** Update my notification + privacy preferences */
   @Patch('me/preferences')
-  async updatePreferences(@Request() req: any, @Body() body: UpdatePreferencesDto) {
+  async updatePreferences(
+    @Request() req: any,
+    @Body() body: UpdatePreferencesDto,
+  ) {
     const updated = await this.prisma.user.update({
       where: { id: req.user.sub },
       data: {
-        ...(body.notificationPrefs !== undefined ? { notificationPrefs: body.notificationPrefs } : {}),
-        ...(body.privacyPrefs !== undefined ? { privacyPrefs: body.privacyPrefs } : {}),
+        ...(body.notificationPrefs !== undefined
+          ? { notificationPrefs: body.notificationPrefs }
+          : {}),
+        ...(body.privacyPrefs !== undefined
+          ? { privacyPrefs: body.privacyPrefs }
+          : {}),
       },
       select: { notificationPrefs: true, privacyPrefs: true },
     });
@@ -90,11 +113,22 @@ export class UsersController {
     const updated = await this.prisma.user.update({
       where: { id: req.user.sub },
       data: {
-        ...(displayName !== undefined ? { displayName: displayName.trim() } : {}),
+        ...(displayName !== undefined
+          ? { displayName: displayName.trim() }
+          : {}),
         ...(bio !== undefined ? { bio: bio.trim() || null } : {}),
         ...(avatarUrl !== undefined ? { avatarUrl } : {}),
       },
-      select: { id: true, email: true, username: true, displayName: true, avatarUrl: true, profileSlug: true, bio: true, timezone: true },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+        profileSlug: true,
+        bio: true,
+        timezone: true,
+      },
     });
     return updated;
   }
@@ -117,11 +151,22 @@ export class UsersController {
         ],
       },
       // Over-fetch then filter so disabled-discovery users don't shrink the result set.
-      select: { id: true, displayName: true, username: true, avatarUrl: true, profileSlug: true, privacyPrefs: true },
+      select: {
+        id: true,
+        displayName: true,
+        username: true,
+        avatarUrl: true,
+        profileSlug: true,
+        privacyPrefs: true,
+      },
       take: 40,
     });
     return results
-      .filter((u) => (u.privacyPrefs as Record<string, boolean> | null)?.allowSearch !== false)
+      .filter(
+        (u) =>
+          (u.privacyPrefs as Record<string, boolean> | null)?.allowSearch !==
+          false,
+      )
       .slice(0, 20)
       .map(({ privacyPrefs, ...rest }) => rest);
   }
@@ -131,11 +176,21 @@ export class UsersController {
   async getProfile(@Param('slug') slug: string, @Request() req: any) {
     const user = await this.prisma.user.findFirst({
       where: { OR: [{ profileSlug: slug }, { username: slug }] },
-      select: { id: true, displayName: true, username: true, profileSlug: true, avatarUrl: true, bio: true, privacyPrefs: true },
+      select: {
+        id: true,
+        displayName: true,
+        username: true,
+        profileSlug: true,
+        avatarUrl: true,
+        bio: true,
+        privacyPrefs: true,
+      },
     });
     if (!user) throw new NotFoundException('User not found');
 
-    const isPublic = (user.privacyPrefs as Record<string, boolean> | null)?.publicProfile !== false;
+    const isPublic =
+      (user.privacyPrefs as Record<string, boolean> | null)?.publicProfile !==
+      false;
     if (!isPublic && user.id !== req.user.sub) {
       // Private profile: only the owner or accepted friends may view it. Return 404
       // (not 403) so a private profile is indistinguishable from a non-existent one.
@@ -157,7 +212,9 @@ export class UsersController {
     if (!target) return [];
 
     // Respect the "Show Events on profile" toggle (owner can always see their own).
-    const showEvents = (target.privacyPrefs as Record<string, boolean> | null)?.showEvents !== false;
+    const showEvents =
+      (target.privacyPrefs as Record<string, boolean> | null)?.showEvents !==
+      false;
     if (!showEvents && target.id !== req.user.sub) return [];
 
     const isFriend = await this.isAcceptedFriend(req.user.sub, target.id);

@@ -102,7 +102,9 @@ describe('AuthService', () => {
 
       // Email + username are lowercased/trimmed before the dup check + insert.
       expect(prisma.user.findFirst).toHaveBeenCalledWith({
-        where: { OR: [{ email: 'athit.b@example.com' }, { username: 'athitb' }] },
+        where: {
+          OR: [{ email: 'athit.b@example.com' }, { username: 'athitb' }],
+        },
       });
       const createArg = prisma.user.create.mock.calls[0][0].data;
       expect(createArg.email).toBe('athit.b@example.com');
@@ -111,13 +113,18 @@ describe('AuthService', () => {
 
       // Password is bcrypt-hashed: ciphertext differs from plaintext but verifies.
       expect(createArg.passwordHash).not.toBe(dto.password);
-      await expect(bcrypt.compare(dto.password, createArg.passwordHash)).resolves.toBe(true);
+      await expect(
+        bcrypt.compare(dto.password, createArg.passwordHash),
+      ).resolves.toBe(true);
 
       // Token pair + sanitized user are returned.
       expect(typeof result.accessToken).toBe('string');
       expect(typeof result.refreshToken).toBe('string');
-      expect(result.user).toMatchObject({ id: 'user-1', email: 'athit.b@example.com' });
-      expect((result.user as any).passwordHash).toBeUndefined();
+      expect(result.user).toMatchObject({
+        id: 'user-1',
+        email: 'athit.b@example.com',
+      });
+      expect(result.user.passwordHash).toBeUndefined();
 
       // A refresh token row is persisted for rotation/tracking.
       expect(prisma.refreshToken.create).toHaveBeenCalledTimes(1);
@@ -127,7 +134,9 @@ describe('AuthService', () => {
       prisma.user.findFirst.mockResolvedValue({ id: 'existing' });
       const service = makeService(buildConfig());
 
-      await expect(service.register(dto)).rejects.toBeInstanceOf(ConflictException);
+      await expect(service.register(dto)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
       expect(prisma.user.create).not.toHaveBeenCalled();
     });
   });
@@ -157,7 +166,10 @@ describe('AuthService', () => {
       prisma.refreshToken.create.mockResolvedValue({});
       const service = makeService(buildConfig());
 
-      const result = await service.login('  JANE@Example.com  ', 'correct-horse');
+      const result = await service.login(
+        '  JANE@Example.com  ',
+        'correct-horse',
+      );
 
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: { email: 'jane@example.com' },
@@ -165,17 +177,20 @@ describe('AuthService', () => {
       expect(typeof result.accessToken).toBe('string');
       expect(typeof result.refreshToken).toBe('string');
       // passwordHash must be stripped from the returned user.
-      expect((result.user as any).passwordHash).toBeUndefined();
-      expect(result.user).toMatchObject({ id: 'user-1', email: 'jane@example.com' });
+      expect(result.user.passwordHash).toBeUndefined();
+      expect(result.user).toMatchObject({
+        id: 'user-1',
+        email: 'jane@example.com',
+      });
     });
 
     it('throws UnauthorizedException when the user does not exist', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
       const service = makeService(buildConfig());
 
-      await expect(service.login('nobody@example.com', 'whatever')).rejects.toBeInstanceOf(
-        UnauthorizedException,
-      );
+      await expect(
+        service.login('nobody@example.com', 'whatever'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
       expect(prisma.refreshToken.create).not.toHaveBeenCalled();
     });
 
@@ -183,9 +198,9 @@ describe('AuthService', () => {
       prisma.user.findUnique.mockResolvedValue(seedUser());
       const service = makeService(buildConfig());
 
-      await expect(service.login('jane@example.com', 'wrong-password')).rejects.toBeInstanceOf(
-        UnauthorizedException,
-      );
+      await expect(
+        service.login('jane@example.com', 'wrong-password'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
       expect(prisma.refreshToken.create).not.toHaveBeenCalled();
     });
   });
@@ -222,14 +237,16 @@ describe('AuthService', () => {
       expect(prisma.refreshToken.create).toHaveBeenCalledTimes(1);
       expect(typeof result.accessToken).toBe('string');
       expect(typeof result.refreshToken).toBe('string');
-      expect((result.user as any).passwordHash).toBeUndefined();
+      expect(result.user.passwordHash).toBeUndefined();
     });
 
     it('throws ForbiddenException when the stored token is missing', async () => {
       prisma.refreshToken.findUnique.mockResolvedValue(null);
       const service = makeService(buildConfig());
 
-      await expect(service.refresh('ghost')).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(service.refresh('ghost')).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
       // Nothing to delete when no row exists.
       expect(prisma.refreshToken.delete).not.toHaveBeenCalled();
       expect(prisma.refreshToken.create).not.toHaveBeenCalled();
@@ -242,7 +259,9 @@ describe('AuthService', () => {
       prisma.refreshToken.delete.mockResolvedValue({});
       const service = makeService(buildConfig());
 
-      await expect(service.refresh('old-refresh-token')).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(service.refresh('old-refresh-token')).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
       // Expired token is purged but no new pair is issued.
       expect(prisma.refreshToken.delete).toHaveBeenCalledWith({
         where: { token: 'old-refresh-token' },
@@ -299,11 +318,15 @@ describe('AuthService', () => {
       prisma.passwordResetToken.deleteMany.mockResolvedValue({});
       // Capture the raw token the service generated so we can assert it matches.
       let storedToken: string | undefined;
-      prisma.passwordResetToken.create.mockImplementation(async ({ data }: any) => {
-        storedToken = data.token;
-        return {};
-      });
-      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+      prisma.passwordResetToken.create.mockImplementation(
+        async ({ data }: any) => {
+          storedToken = data.token;
+          return {};
+        },
+      );
+      const logSpy = jest
+        .spyOn(console, 'log')
+        .mockImplementation(() => undefined);
       const service = makeService(buildConfig('true'));
 
       const res: any = await service.forgotPassword('jane@example.com');
@@ -322,9 +345,9 @@ describe('AuthService', () => {
     it('rejects passwords shorter than 8 characters with BadRequestException', async () => {
       const service = makeService(buildConfig());
 
-      await expect(service.resetPassword('any-token', 'short')).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(
+        service.resetPassword('any-token', 'short'),
+      ).rejects.toBeInstanceOf(BadRequestException);
       // Should fail before any DB lookup.
       expect(prisma.passwordResetToken.findUnique).not.toHaveBeenCalled();
     });
@@ -333,9 +356,9 @@ describe('AuthService', () => {
       prisma.passwordResetToken.findUnique.mockResolvedValue(null);
       const service = makeService(buildConfig());
 
-      await expect(service.resetPassword('bad-token', 'newpassword123')).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(
+        service.resetPassword('bad-token', 'newpassword123'),
+      ).rejects.toBeInstanceOf(BadRequestException);
       expect(prisma.user.update).not.toHaveBeenCalled();
     });
 
@@ -348,9 +371,9 @@ describe('AuthService', () => {
       });
       const service = makeService(buildConfig());
 
-      await expect(service.resetPassword('used-token', 'newpassword123')).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(
+        service.resetPassword('used-token', 'newpassword123'),
+      ).rejects.toBeInstanceOf(BadRequestException);
       expect(prisma.user.update).not.toHaveBeenCalled();
     });
 
@@ -363,9 +386,9 @@ describe('AuthService', () => {
       });
       const service = makeService(buildConfig());
 
-      await expect(service.resetPassword('expired-token', 'newpassword123')).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(
+        service.resetPassword('expired-token', 'newpassword123'),
+      ).rejects.toBeInstanceOf(BadRequestException);
       expect(prisma.user.update).not.toHaveBeenCalled();
     });
 
@@ -381,7 +404,10 @@ describe('AuthService', () => {
       prisma.refreshToken.deleteMany.mockResolvedValue({});
       const service = makeService(buildConfig());
 
-      const res = await service.resetPassword('good-token', 'brand-new-password');
+      const res = await service.resetPassword(
+        'good-token',
+        'brand-new-password',
+      );
 
       // New password is stored as a bcrypt hash (not plaintext) for the right user.
       const updateArg = prisma.user.update.mock.calls[0][0];
@@ -399,7 +425,9 @@ describe('AuthService', () => {
       expect(prisma.refreshToken.deleteMany).toHaveBeenCalledWith({
         where: { userId: 'user-1' },
       });
-      expect(res).toEqual({ message: 'Password updated successfully. Please sign in again.' });
+      expect(res).toEqual({
+        message: 'Password updated successfully. Please sign in again.',
+      });
     });
   });
 });

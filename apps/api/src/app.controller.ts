@@ -13,6 +13,10 @@ export class AppController {
   /** Liveness probe used by Docker / CI / uptime checks. */
   @Get('health')
   health() {
-    return { status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() };
+    return {
+      status: 'ok',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+    };
   }
 }
